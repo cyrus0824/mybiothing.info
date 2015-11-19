@@ -25,11 +25,8 @@ if src_path not in sys.path:
 #from config import INCLUDE_DOCS
 
 from www.api.es import ESQuery
-from www.helper import add_apps
-from www.api.handlers import APP_LIST as api_app_list
 from www.api.handlers import MetaDataHandler
 from www.api.handlers import FieldsHandler
-from www.beacon.handlers import APP_LIST as beacon_app_list
 
 __USE_WSGI__ = False
 #DOCS_STATIC_PATH = os.path.join(src_path, 'docs/_build/html')
@@ -52,30 +49,17 @@ class StatusCheckHandler(tornado.web.RequestHandler):
     ''' Handles requests to check the status of the server. '''
     def head(self):
         esq = ESQuery()
-        esq = esq.get_variant('chr1:g.218631822G>A')
+        esq = esq.get_status_check()
 
     def get(self):
         self.head()
         self.write('OK')
 
-
-class MainHandler(tornado.web.RequestHandler):
-    def get(self):
-        #if INCLUDE_DOCS:
-            self.render(os.path.join(STATIC_PATH, 'index.html'))
-
-
 APP_LIST = [
-    (r"/", MainHandler),
     (r"/status", StatusCheckHandler),
     (r"/metadata", MetaDataHandler),
     (r"/metadata/fields", FieldsHandler),
 ]
-
-APP_LIST += add_apps('api', api_app_list)
-APP_LIST += add_apps('v1', api_app_list)
-APP_LIST += add_apps('beacon', beacon_app_list)
-
 
 settings = {}
 if options.debug:
@@ -87,7 +71,7 @@ if options.debug:
     # settings.update(auth_settings)
 
 
-def main():
+def main(APP_LIST):
     application = tornado.web.Application(APP_LIST, **settings)
     http_server = tornado.httpserver.HTTPServer(application)
     http_server.listen(options.port, address=options.address)
@@ -98,7 +82,3 @@ def main():
         logging.info('Server is running on "%s:%s"...' % (options.address, options.port))
 
     loop.start()
-
-
-if __name__ == "__main__":
-    main()

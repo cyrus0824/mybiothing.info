@@ -82,31 +82,31 @@ class ESIndexer():
         print("Default doc_type:", self._doc_type)
 
     @wrapper
-    def get_variant(self, vid, **kwargs):
-        return self._es.get(index=self._index, id=vid, doc_type=self._doc_type, **kwargs)
+    def get_biothing(self, bid, **kwargs):
+        return self._es.get(index=self._index, id=bid, doc_type=self._doc_type, **kwargs)
 
     @wrapper
-    def exists(self, vid):
-        """return True/False if a variant id exists or not."""
+    def exists(self, bid):
+        """return True/False if a biothing id exists or not."""
         try:
-            doc = self.get_variant(vid, fields=None)
+            doc = self.get_biothing(bid, fields=None)
             return doc['found']
         except NotFoundError:
             return False
 
     @wrapper
-    def mexists(self, vid_list):
+    def mexists(self, bid_list):
         q = {
             "query": {
                 "ids": {
-                    "values": vid_list
+                    "values": bid_list
                 }
             }
         }
-        res = self._es.search(index=self._index, doc_type=self._doc_type, body=q, fields=None, size=len(vid_list))
+        res = self._es.search(index=self._index, doc_type=self._doc_type, body=q, fields=None, size=len(bid_list))
         id_set = set([doc['_id'] for doc in res['hits']['hits']])
         print('..', len(id_set), end='')   # print out # of matching hits
-        return [(vid, vid in id_set) for vid in vid_list]
+        return [(bid, bid in id_set) for bid in bid_list]
 
     @wrapper
     def count(self, q=None, raw=False):

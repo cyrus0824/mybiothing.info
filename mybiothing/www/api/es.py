@@ -9,11 +9,11 @@ import config
 # _exists_:dbnsfp AND _exists_:dbsnp AND _exists_:mutdb AND _exists_:cosmic AND _exists_:clinvar AND _exists_:gwassnps
 
 
-class MVQueryError(Exception):
+class QueryError(Exception):
     pass
 
 
-class MVScrollSetupError(Exception):
+class ScrollSetupError(Exception):
     pass
 
 
@@ -23,20 +23,17 @@ class ESQuery():
         self._index = index or config.ES_INDEX_NAME
         self._doc_type = doc_type or config.ES_DOC_TYPE
         self._allowed_options = ['_source', 'start', 'from_', 'size',
-                                 'sort', 'explain', 'version', 'facets', 'fetch_all', 'jsonld', 'host']
+                                 'sort', 'explain', 'version', 'facets', 'fetch_all', 'host']
         self._scroll_time = '1m'
         self._total_scroll_size = 1000   # Total number of hits to return per scroll batch
         if self._total_scroll_size % self.get_number_of_shards() == 0:
             # Total hits per shard per scroll batch
             self._scroll_size = int(self._total_scroll_size / self.get_number_of_shards())
         else:
-            raise MVScrollSetupError("_total_scroll_size of {} can't be ".format(self._total_scroll_size) +
+            raise ScrollSetupError("_total_scroll_size of {} can't be ".format(self._total_scroll_size) +
                                      "divided evenly among {} shards.".format(self.get_number_of_shards()))
 
-    def _use_hg38(self):
-        self._index = config.ES_INDEX_NAME_HG38
-
-    def _get_variantdoc(self, hit):
+    def _get_biothingdoc(self, hit):
         doc = hit.get('_source', hit.get('fields', {}))
         doc.setdefault('_id', hit['_id'])
         for attr in ['_score', '_version']:
@@ -46,16 +43,19 @@ class ESQuery():
         if hit.get('found', None) is False:
             # if found is false, pass that to the doc
             doc['found'] = hit['found']
-        # add cadd license info
-        if 'cadd' in doc:
-            doc['cadd']['_license'] = 'http://goo.gl/bkpNhq'
+        # add other keys to object, if necessary
+        self._modify_biothingdoc(doc)
         return doc
+
+    def _modify_biothingdoc(self, doc):
+        # function for overriding in subclass
+        pass
 
     def _cleaned_res(self, res, empty=[], error={'error': True}, single_hit=False):
         '''res is the dictionary returned from a query.
            do some reformating of raw ES results before returning.
 
-           This method is used for self.mget_variants2 and self.get_variant2 method.
+           This method is used for self.mget_biothings and self.get_variant2 method.
         '''
         if 'error' in res:
             return error
@@ -65,9 +65,9 @@ class ESQuery():
         if total == 0:
             return empty
         elif total == 1 and single_hit:
-            return self._get_variantdoc(hits['hits'][0])
+            return self._get_biothingdoc(hits['hits'][0])
         else:
-            return [self._get_variantdoc(hit) for hit in hits['hits']]
+            return [self._get_biothingdoc(hit) for hit in hits['hits']]
 
     def _clean_res2(self, res):
         '''res is the dictionary returned from a query.
@@ -79,7 +79,7 @@ class ESQuery():
         for attr in ['took', 'facets', 'aggregations', '_scroll_id']:
             if attr in res:
                 _res[attr] = res[attr]
-        _res['hits'] = [self._get_variantdoc(hit) for hit in _res['hits']]
+        _res['hits'] = [self._get_biothingdoc(hit) for hit in _res['hits']]
         return _res
 
     def _cleaned_scopes(self, scopes):
@@ -136,7 +136,6 @@ class ESQuery():
         options.raw = kwargs.pop('raw', False)
         options.rawquery = kwargs.pop('rawquery', False)
         options.fetch_all = kwargs.pop('fetch_all', False)
-        options.jsonld = kwargs.pop('jsonld', False)
         options.host = kwargs.pop('host', 'myvariant.info')
         scopes = kwargs.pop('scopes', None)
         if scopes:
@@ -158,55 +157,36 @@ class ESQuery():
         n_shards = int(n_shards)
         return n_shards
 
-    def exists(self, vid):
-        """return True/False if a variant id exists or not."""
+    def exists(self, bid):
+        """return True/False if a biothing id exists or not."""
         try:
-            doc = self.get_variant(vid, fields=None)
+            doc = self.get_biothing(bid, fields=None)
             return doc['found']
         except NotFoundError:
             return False
 
-    def get_variant(self, vid, **kwargs):
+    def get_biothing(self, bid, **kwargs):
         '''unknown vid return None'''
         options = self._get_cleaned_query_options(kwargs)
         kwargs = {"_source": options.kwargs["_source"]} if "_source" in options.kwargs else {}
         try:
-            res = self._es.get(index=self._index, id=vid, doc_type=self._doc_type, **kwargs)
+            res = self._es.get(index=self._index, id=bid, doc_type=self._doc_type, **kwargs)
         except NotFoundError:
             return
 
         if options.raw:
             return res
 
-        res = self._get_variantdoc(res)
-        if options.jsonld:
-            res['@context'] = 'http://' + options.host + '/context/variant.jsonld'
+        res = self._get_biothingdoc(res)
         return res
 
-    def mget_variants(self, vid_list, **kwargs):
-        options = self._get_cleaned_query_options(kwargs)
-        kwargs = {"_source": options.kwargs["_source"]} if "_source" in options.kwargs else {}
-        res = self._es.mget(body={'ids': vid_list}, index=self._index, doc_type=self._doc_type, **kwargs)
-        return res if options.raw else [self._get_variantdoc(doc) for doc in res['docs']]
-
-    def get_variant2(self, vid, **kwargs):
-        options = self._get_cleaned_query_options(kwargs)
-        qbdr = ESQueryBuilder(**options.kwargs)
-        _q = qbdr.build_id_query(vid, options.scopes)
-        if options.rawquery:
-            return _q
-        res = self._es.search(body=_q, index=self._index, doc_type=self._doc_type)
-        if not options.raw:
-            res = self._cleaned_res(res, empty=None, single_hit=True)
-        return res
-
-    def mget_variants2(self, vid_list, **kwargs):
+    def mget_biothings(self, bid_list, **kwargs):
         '''for /query post request'''
         options = self._get_cleaned_query_options(kwargs)
         qbdr = ESQueryBuilder(**options.kwargs)
         try:
-            _q = qbdr.build_multiple_id_query(vid_list, scopes=options.scopes)
-        except MVQueryError as err:
+            _q = qbdr.build_multiple_id_query(bid_list, scopes=options.scopes)
+        except QueryError as err:
             return {'success': False,
                     'error': err.message}
         if options.rawquery:
@@ -215,12 +195,12 @@ class ESQuery():
         if options.raw:
             return res
 
-        assert len(res) == len(vid_list)
+        assert len(res) == len(bid_list)
         _res = []
 
         for i in range(len(res)):
             hits = res[i]
-            qterm = vid_list[i]
+            qterm = bid_list[i]
             hits = self._cleaned_res(hits, empty=[], single_hit=False)
             if len(hits) == 0:
                 _res.append({u'query': qterm,
@@ -231,8 +211,6 @@ class ESQuery():
             else:
                 for hit in hits:
                     hit[u'query'] = qterm
-                    if options.jsonld:
-                        hit['@context'] = 'http://' + options.host + '/context/variant.jsonld'
                     _res.append(hit)
         return _res
 
@@ -294,101 +272,17 @@ class ESQuery():
                 _facets[field] = {"terms": {"field": field}}
             return _facets
 
-    def _parse_interval_query(self, query):
-        '''Check if the input query string matches interval search regex,
-           if yes, return a dictionary with three key-value pairs:
-              chr
-              gstart
-              gend
-            , otherwise, return None.
-        '''
-        pattern = r'chr(?P<chr>\w+):(?P<gstart>[0-9,]+)-(?P<gend>[0-9,]+)'
-        if query:
-            mat = re.search(pattern, query)
-            if mat:
-                return mat.groupdict()
-
-    def query_interval(self, chr, gstart, gend, **kwargs):
-        #gstart = safe_genome_pos(gstart)
-        #gend = safe_genome_pos(gend)
-        if chr.lower().startswith('chr'):
-            chr = chr[3:]
-        # _query = {
-        #     "query": {
-        #         "bool": {
-        #             "should": [
-        #                 {
-        #                     "bool": {
-        #                         "must": [
-        #                             {
-        #                                 "term": {"chrom": chr.lower()}
-        #                             },
-        #                             {
-        #                                 "range": {"chromStart": {"lte": gend}}
-        #                             },
-        #                             {
-        #                                 "range": {"chromEnd": {"gte": gstart}}
-        #                             }
-        #                         ]
-        #                     }
-        #                 },
-        #                 {
-        #                     "bool": {
-        #                         "must": [
-        #                             {
-        #                                 "term": {"chrom": chr.lower()}
-        #                             },
-        #                             {
-        #                                 "range": {"dbnsfp.hg19.start": {"lte": gend}}
-        #                             },
-        #                             {
-        #                                 "range": {"dbnsfp.hg19.end": {"gte": gstart}}
-        #                             }
-        #                         ]
-        #                     }
-        #                 }
-        #             ]
-        #         }
-        #     }
-        # }
-        _query = {
-            "query": {
-                "bool": {
-                    "should": []
-                }
-            }
-        }
-        hg19_interval_fields = ['dbnsfp.hg19', 'dbsnp.hg19', 'evs.hg19', 'mutdb.hg19', 'docm.hg19']
-        for field in hg19_interval_fields:
-            _q = {
-                "bool": {
-                    "must": [
-                        {
-                            "term": {"chrom": chr.lower()}
-                        },
-                        {
-                            "range": {field + ".start": {"lte": gend}}
-                        },
-                        {
-                            "range": {field + ".end": {"gte": gstart}}
-                        }
-                    ]
-                }
-            }
-            _query["query"]["bool"]["should"].append(_q)
-        return self._es.search(index=self._index, doc_type=self._doc_type, body=_query, **kwargs)
-
     def query_fields(self, **kwargs):
-        # query the metadata to get the available fields for a variant object
+        # query the metadata to get the available fields for a biothing object
         r = self._es.indices.get(index=self._index)
-        return r[list(r.keys())[0]]['mappings']['variant']['properties']
+        return r[list(r.keys())[0]]['mappings'][self._doc_type]['properties']
 
 
 class ESQueryBuilder:
     def __init__(self, **query_options):
         self._query_options = query_options
 
-    def build_id_query(self, vid, scopes=None):
+    def build_id_query(self, bid, scopes=None):
         # _default_scopes = [
         #     '_id',
         #     'rsid', "dbnsfp.rsid", "dbsnp.rsid", "evs.rsid", "mutdb.rsid"  # for rsid
@@ -401,7 +295,7 @@ class ESQueryBuilder:
             _query = {
                 "match": {
                     scopes: {
-                        "query": "{}".format(vid),
+                        "query": "{}".format(bid),
                         "operator": "and"
                     }
                 }
@@ -409,7 +303,7 @@ class ESQueryBuilder:
         elif is_seq(scopes):
             _query = {
                 "multi_match": {
-                    "query": "{}".format(vid),
+                    "query": "{}".format(bid),
                     "fields": scopes,
                     "operator": "and"
                 }
@@ -421,10 +315,10 @@ class ESQueryBuilder:
         _q.update(self._query_options)
         return _q
 
-    def build_multiple_id_query(self, vid_list, scopes=None):
+    def build_multiple_id_query(self, bid_list, scopes=None):
         """make a query body for msearch query."""
         _q = []
-        for id in vid_list:
+        for id in bid_list:
             _q.extend(['{}', json.dumps(self.build_id_query(id, scopes))])
         _q.append('')
         return '\n'.join(_q)

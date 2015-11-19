@@ -1,2 +1,0 @@
-class MyBiothingSettings():
-    pass

@@ -3,7 +3,8 @@ import json
 
 from tornado.web import HTTPError
 from www.helper import BaseHandler
-from mybiothing_settings import MyBiothingSettings
+from settings import MyBiothingSettings
+from settings import GoogleAnalyticsSettings
 from .es import ESQuery
 from utils.common import split_ids
 import config
@@ -13,12 +14,13 @@ class BiothingHandler(BaseHandler):
     def __init__(self):
         super(BiothingHandler, self).__init__()
         self.esq = ESQuery()
-        self.biothing_settings = MyBiothingSettings() 
+        self.biothing_settings = MyBiothingSettings()
+        self.ga_settings = GoogleAnalyticsSettings()
 
     def _ga_event_object(self, action, data={}):
         ''' Returns the google analytics object for requests on this endpoint (annotation handler).'''
         ret = {}
-        ga_settings = self.biothing_settings.ga_settings
+        ga_settings = self.ga_settings
         ret['category'] = ga_settings.ga_event_category()
         if action == 'GET':
             ret['action'] = '_'.join([self.biothing_settings.annotation_event_endpoint(), ga_settings.ga_event_get_action()])
@@ -67,7 +69,7 @@ class BiothingHandler(BaseHandler):
         ids = kwargs.pop('ids', None)
         if ids:
             ids = re.split('[\s\r\n+|,]+', ids)
-            res = self.esq.mget_biothing(ids, **kwargs)
+            res = self.esq.mget_biothings(ids, **kwargs)
         else:
             res = {'success': False, 'error': "Missing required parameters."}
         encode = not isinstance(res, str)    # when res is a string, e.g. when rawquery is true, do not encode it as json
@@ -77,14 +79,15 @@ class BiothingHandler(BaseHandler):
 
 class QueryHandler(BaseHandler):
     def __init__(self):
-        super(BiothingHandler, self).__init__()
+        super(QueryHandler, self).__init__()
         self.esq = ESQuery()
         self.biothing_settings = MyBiothingSettings()
+        self.ga_settings = GoogleAnalyticsSettings()
 
     def _ga_event_object(self, action, data={}):
         ''' Returns the google analytics object for requests on this endpoint (annotation handler).'''
         ret = {}
-        ga_settings = self.biothing_settings.ga_settings
+        ga_settings = self.ga_settings
         ret['category'] = ga_settings.ga_event_category()
         if action == 'GET':
             ret['action'] = '_'.join([self.biothing_settings.query_event_endpoint(), ga_settings.ga_event_get_action()])
@@ -174,7 +177,7 @@ class QueryHandler(BaseHandler):
             if ids:
                 scopes = kwargs.pop('scopes', None)
                 fields = kwargs.pop('fields', None)
-                res = self.esq.mget_variants2(ids, fields=fields, scopes=scopes, **kwargs)
+                res = self.esq.mget_biothings(ids, fields=fields, scopes=scopes, **kwargs)
         else:
             res = {'success': False, 'error': "Missing required parameters."}
 
@@ -224,12 +227,10 @@ class FieldsHandler(BaseHandler):
             if k1 in notes:
                 r[k1]['notes'] = notes[k1]
         self.return_json(r)
-
-
-APP_LIST = [
-    (r"/variant/(.+)/?", VariantHandler),   # for variant get request
-    (r"/variant/?$", VariantHandler),       # for variant post request
-    (r"/query/?", QueryHandler),            # for query get/post request
-    (r"/metadata", MetaDataHandler),        # for metadata requests
-    (r"/metadata/fields", FieldsHandler),   # for available field information
-]
+#APP_LIST = [
+#    (r"/variant/(.+)/?", VariantHandler),   # for variant get request
+#    (r"/variant/?$", VariantHandler),       # for variant post request
+#    (r"/query/?", QueryHandler),            # for query get/post request
+#    (r"/metadata", MetaDataHandler),        # for metadata requests
+#    (r"/metadata/fields", FieldsHandler),   # for available field information
+#]
