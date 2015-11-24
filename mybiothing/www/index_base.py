@@ -24,10 +24,6 @@ if src_path not in sys.path:
     sys.path.append(src_path)
 #from config import INCLUDE_DOCS
 
-from www.api.es import ESQuery
-from www.api.handlers import MetaDataHandler
-from www.api.handlers import FieldsHandler
-
 __USE_WSGI__ = False
 #DOCS_STATIC_PATH = os.path.join(src_path, 'docs/_build/html')
 #if INCLUDE_DOCS and not os.path.exists(DOCS_STATIC_PATH):
@@ -43,23 +39,6 @@ if options.debug:
     import logging
     logging.getLogger().setLevel(logging.DEBUG)
     options.address = '0.0.0.0'
-
-
-class StatusCheckHandler(tornado.web.RequestHandler):
-    ''' Handles requests to check the status of the server. '''
-    def head(self):
-        esq = ESQuery()
-        esq = esq.get_status_check()
-
-    def get(self):
-        self.head()
-        self.write('OK')
-
-APP_LIST = [
-    (r"/status", StatusCheckHandler),
-    (r"/metadata", MetaDataHandler),
-    (r"/metadata/fields", FieldsHandler),
-]
 
 settings = {}
 if options.debug:

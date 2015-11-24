@@ -3,33 +3,18 @@ import json
 
 from tornado.web import HTTPError
 from www.helper import BaseHandler
-from settings import MyBiothingSettings
-from settings import GoogleAnalyticsSettings
 from .es import ESQuery
 from utils.common import split_ids
 import config
 
 
 class BiothingHandler(BaseHandler):
-    def __init__(self):
-        super(BiothingHandler, self).__init__()
-        self.esq = ESQuery()
-        self.biothing_settings = MyBiothingSettings()
-        self.ga_settings = GoogleAnalyticsSettings()
+    esq = ESQuery()
 
     def _ga_event_object(self, action, data={}):
         ''' Returns the google analytics object for requests on this endpoint (annotation handler).'''
-        ret = {}
-        ga_settings = self.ga_settings
-        ret['category'] = ga_settings.ga_event_category()
-        if action == 'GET':
-            ret['action'] = '_'.join([self.biothing_settings.annotation_event_endpoint(), ga_settings.ga_event_get_action()])
-        elif action == 'POST':
-            ret['action'] = '_'.join([self.biothing_settings.annotation_event_endpoint(), ga_settings.ga_event_post_action()])
-        for (k,v) in data.items():
-            ret['label'] = k
-            ret['value'] = v
-        return ret
+        return self.ga_settings.ga_event_object(endpoint=self.settings.annotation_endpoint(), action=action, data=data)
+
 
     def _examine_kwargs(self, action, kwargs):
         ''' A function for sub-classing.  This will be run after the get_query_params but before the actual
@@ -78,27 +63,11 @@ class BiothingHandler(BaseHandler):
 
 
 class QueryHandler(BaseHandler):
-    def __init__(self):
-        super(QueryHandler, self).__init__()
-        self.esq = ESQuery()
-        self.biothing_settings = MyBiothingSettings()
-        self.ga_settings = GoogleAnalyticsSettings()
+    esq = ESQuery()
 
     def _ga_event_object(self, action, data={}):
-        ''' Returns the google analytics object for requests on this endpoint (annotation handler).'''
-        ret = {}
-        ga_settings = self.ga_settings
-        ret['category'] = ga_settings.ga_event_category()
-        if action == 'GET':
-            ret['action'] = '_'.join([self.biothing_settings.query_event_endpoint(), ga_settings.ga_event_get_action()])
-        elif action == 'POST':
-            ret['action'] = '_'.join([self.biothing_settings.query_event_endpoint(), ga_settings.ga_event_post_action()])
-        elif action == 'fetch_all':
-            ret['action'] = action
-        for (k,v) in data.items():
-            ret['label'] = k
-            ret['value'] = v
-        return ret
+        ''' Returns the google analytics object for requests on this endpoint (query handler).'''
+        return self.ga_settings.ga_event_object(endpoint=self.settings.query_endpoint(), action=action, data=data)
 
     def _examine_kwargs(self, action, kwargs):
         ''' A function for sub-classing.  This will be run after the get_query_params but before the actual
@@ -187,7 +156,7 @@ class QueryHandler(BaseHandler):
 
 
 class MetaDataHandler(BaseHandler):
-    disable_caching = True
+    esq = ESQuery()
 
     def get(self):
         # For now, just return a hardcoded object, later we'll actually query the ES db for this information
@@ -227,10 +196,14 @@ class FieldsHandler(BaseHandler):
             if k1 in notes:
                 r[k1]['notes'] = notes[k1]
         self.return_json(r)
-#APP_LIST = [
-#    (r"/variant/(.+)/?", VariantHandler),   # for variant get request
-#    (r"/variant/?$", VariantHandler),       # for variant post request
-#    (r"/query/?", QueryHandler),            # for query get/post request
-#    (r"/metadata", MetaDataHandler),        # for metadata requests
-#    (r"/metadata/fields", FieldsHandler),   # for available field information
-#]
+
+class StatusHandler(BaseHandler):
+    ''' Handles requests to check the status of the server. '''
+    esq = ESQuery()
+
+    def head(self):
+        r = esq.get_status_check()
+
+    def get(self):
+        self.head()
+        self.write('OK')

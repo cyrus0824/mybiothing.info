@@ -1,4 +1,4 @@
-import re
+#import re
 import json
 from utils.common import dotdict, is_str, is_seq
 from utils.es import get_es
@@ -18,11 +18,14 @@ class ScrollSetupError(Exception):
 
 
 class ESQuery():
-    def __init__(self, index=None, doc_type=None, es_host=None):
+    def __init__(self, index=None, doc_type=None, es_host=None, allowed_options=None):
         self._es = get_es(es_host)
         self._index = index or config.ES_INDEX_NAME
         self._doc_type = doc_type or config.ES_DOC_TYPE
-        self._allowed_options = ['_source', 'start', 'from_', 'size',
+        if allowed_options:
+            self._allowed_options = allowed_options
+        else:
+            self._allowed_options = ['_source', 'start', 'from_', 'size',
                                  'sort', 'explain', 'version', 'facets', 'fetch_all', 'host']
         self._scroll_time = '1m'
         self._total_scroll_size = 1000   # Total number of hits to return per scroll batch
@@ -55,7 +58,7 @@ class ESQuery():
         '''res is the dictionary returned from a query.
            do some reformating of raw ES results before returning.
 
-           This method is used for self.mget_biothings and self.get_variant2 method.
+           This method is used for self.mget_biothings and self.get_biothing method.
         '''
         if 'error' in res:
             return error
@@ -69,7 +72,7 @@ class ESQuery():
         else:
             return [self._get_biothingdoc(hit) for hit in hits['hits']]
 
-    def _clean_res2(self, res):
+    def _cleaned_res2(self, res):
         '''res is the dictionary returned from a query.
            do some reformating of raw ES results before returning.
 
@@ -129,6 +132,14 @@ class ESQuery():
                 _sort_array.append(_f)
             options["sort"] = ','.join(_sort_array)
         return options
+
+    def _parse_facets_option(self, kwargs):
+        facets = kwargs.pop('facets', None)
+        if facets:
+            _facets = {}
+            for field in facets.split(','):
+                _facets[field] = {"terms": {"field": field}}
+            return _facets
 
     def _get_cleaned_query_options(self, kwargs):
         """common helper for processing fields, kwargs and other options passed to ESQueryBuilder."""
@@ -246,7 +257,7 @@ class ESQuery():
         #     return res
 
         if not options.raw:
-            res = self._clean_res2(res)
+            res = self._cleaned_res2(res)
         return res
 
     def scroll(self, scroll_id, **kwargs):
@@ -258,24 +269,20 @@ class ESQuery():
             return {'success': False, 'error': 'No results to return.'}
         else:
             if not options.raw:
-                res = self._clean_res2(r)
+                res = self._cleaned_res2(r)
             # res.update({'_scroll_id': scroll_id})
             if r['_shards']['failed']:
                 res.update({'_warning': 'Scroll request has failed on {} shards out of {}.'.format(r['_shards']['failed'], r['_shards']['total'])})
         return res
 
-    def _parse_facets_option(self, kwargs):
-        facets = kwargs.pop('facets', None)
-        if facets:
-            _facets = {}
-            for field in facets.split(','):
-                _facets[field] = {"terms": {"field": field}}
-            return _facets
-
     def query_fields(self, **kwargs):
         # query the metadata to get the available fields for a biothing object
         r = self._es.indices.get(index=self._index)
         return r[list(r.keys())[0]]['mappings'][self._doc_type]['properties']
+
+    def get_status_check(self):
+        # TODO Finish this
+        pass
 
 
 class ESQueryBuilder:
@@ -283,12 +290,6 @@ class ESQueryBuilder:
         self._query_options = query_options
 
     def build_id_query(self, bid, scopes=None):
-        # _default_scopes = [
-        #     '_id',
-        #     'rsid', "dbnsfp.rsid", "dbsnp.rsid", "evs.rsid", "mutdb.rsid"  # for rsid
-        #     "dbsnp.gene.symbol", 'evs.gene.symbol', 'clinvar.gene.symbol',
-        #     'dbnsfp.genename', "cadd.gene.genename", "docm.genename",      # for gene symbols
-        # ]
         _default_scopes = '_id'
         scopes = scopes or _default_scopes
         if is_str(scopes):
