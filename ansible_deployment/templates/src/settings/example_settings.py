@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from myexample.api.handlers import FieldsHandler, QueryHandler, MetaDataHandler, ExampleHandler, StatusHandler
+from my{{ proj_src }}.api.handlers import FieldsHandler, QueryHandler, MetaDataHandler, {{ cap_proj_src }}Handler, StatusHandler
 import settings.all_settings as all_settings
 
-class MyExampleSettings():
+class My{{ cap_proj_src }}Settings():
     def __init__(self):
         pass
 
@@ -18,13 +18,16 @@ class MyExampleSettings():
         else:
             return ''
 
+    def _status_check_id(self):
+        return all_settings.STATUS_CHECK_ID
+
     def _return_applist(self):
         ret = [
             (r"/status", StatusHandler),
             (r"/metadata", MetaDataHandler),
             (r"/metadata/fields", FieldsHandler),
-            (r"/" self._api_version() + self._annotation_endpoint() + "/(.+)/?", ExampleHandler),   # for get request
-            (r"/" + self._api_version() + self._annotation_endpoint() + "/?$", ExampleHandler),       # for post request
+            (r"/" + self._api_version() + self._annotation_endpoint() + "/(.+)/?", {{ cap_proj_src }}Handler),   # for get request
+            (r"/" + self._api_version() + self._annotation_endpoint() + "/?$", {{ cap_proj_src }}Handler),       # for post request
             (r"/" + self._api_version() + self._query_endpoint() + "/?", QueryHandler),            # for query get/post request
             ]
         if self._api_version():
@@ -33,3 +36,5 @@ class MyExampleSettings():
             (r"/" + self._api_version() + "metadata/fields", FieldsHandler),   # for available field information
             ]
         return ret
+    
+

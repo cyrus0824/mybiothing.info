@@ -1,15 +1,12 @@
 import re
 import json
-
 from tornado.web import HTTPError
 from www.helper import BaseHandler
-from .es import ESQuery
 from utils.common import split_ids
 import config
 
 
 class BiothingHandler(BaseHandler):
-    esq = ESQuery()
 
     def _ga_event_object(self, action, data={}):
         ''' Returns the google analytics object for requests on this endpoint (annotation handler).'''
@@ -63,7 +60,6 @@ class BiothingHandler(BaseHandler):
 
 
 class QueryHandler(BaseHandler):
-    esq = ESQuery()
 
     def _ga_event_object(self, action, data={}):
         ''' Returns the google analytics object for requests on this endpoint (query handler).'''
@@ -156,7 +152,6 @@ class QueryHandler(BaseHandler):
 
 
 class MetaDataHandler(BaseHandler):
-    esq = ESQuery()
 
     def get(self):
         # For now, just return a hardcoded object, later we'll actually query the ES db for this information
@@ -164,7 +159,6 @@ class MetaDataHandler(BaseHandler):
 
 
 class FieldsHandler(BaseHandler):
-    esq = ESQuery()
 
     def get(self):
         notes = json.load(open(config.FIELD_NOTES_PATH, 'r'))
@@ -199,10 +193,9 @@ class FieldsHandler(BaseHandler):
 
 class StatusHandler(BaseHandler):
     ''' Handles requests to check the status of the server. '''
-    esq = ESQuery()
 
     def head(self):
-        r = esq.get_status_check()
+        r = esq._status_check(self.settings._status_check_id())
 
     def get(self):
         self.head()

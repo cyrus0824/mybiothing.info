@@ -5,9 +5,6 @@ from utils.es import get_es
 from elasticsearch import NotFoundError, RequestError
 import config
 
-# a query to get variants with most of fields:
-# _exists_:dbnsfp AND _exists_:dbsnp AND _exists_:mutdb AND _exists_:cosmic AND _exists_:clinvar AND _exists_:gwassnps
-
 
 class QueryError(Exception):
     pass
@@ -280,9 +277,9 @@ class ESQuery():
         r = self._es.indices.get(index=self._index)
         return r[list(r.keys())[0]]['mappings'][self._doc_type]['properties']
 
-    def get_status_check(self):
-        # TODO Finish this
-        pass
+    def _status_check(self, bid):
+        r = self.get_biothing(bid)
+        return
 
 
 class ESQueryBuilder:
