@@ -1,35 +1,35 @@
 # -*- coding: utf-8 -*-
-from mybiothing.www.api.handlers import MetaDataHandler, BiothingHandler, QueryHandler, StatusHandler, FieldsHandler
-from {{ src_package }}.api.es import ESQuery
-from {{ src_package }}.settings.example_settings import My{{ cap_src_package }}Settings
-from {{ src_package }}.settings.ga_settings import GoogleAnalyticsSettings
+from biothings.www.api.handlers import MetaDataHandler, BiothingHandler, QueryHandler, StatusHandler, FieldsHandler
+from ${ src_package }.api.es import ESQuery
+from ${ src_package }.settings.example_settings import ${ settings_class }
+from ${ src_package }.settings.ga_settings import GoogleAnalyticsSettings
 
-class MetaDataHandler(MetaDataHandler):
+class ${ annotation_handler_name }Handler(BiothingHandler):
+    ''' This class is for the ${ annotation_endpoint } endpoint. '''
     esq = ESQuery()
-    settings = My{{ cap_src_package }}Settings()
+    settings = ${ settings_class }()
     ga_settings = GoogleAnalyticsSettings()
-    pass
 
-class {{ cap_src_package }}Handler(BiothingHandler):
+class ${ query_handler_name }Handler(QueryHandler):
+    ''' This class is for the ${ query_endpoint } endpoint. '''
     esq = ESQuery()
-    settings = My{{ cap_src_package }}Settings()
+    settings = ${ settings_class }()
     ga_settings = GoogleAnalyticsSettings()
-    pass
-
-class QueryHandler(QueryHandler):
-    esq = ESQuery()
-    settings = My{{ cap_src_package }}Settings()
-    ga_settings = GoogleAnalyticsSettings()
-    pass
 
 class StatusHandler(StatusHandler):
+    ''' This class is for the /status endpoint. '''
     esq = ESQuery()
-    settings = My{{ cap_src_package }}Settings()
+    settings = ${ settings_class }()
     ga_settings = GoogleAnalyticsSettings()
-    pass
 
 class FieldsHandler(FieldsHandler):
+    ''' This class is for the /metadata/fields endpoint. '''
     esq = ESQuery()
-    settings = My{{ cap_src_package }}Settings()
+    settings = ${ settings_class }()
     ga_settings = GoogleAnalyticsSettings()
-    pass
+    
+class MetaDataHandler(MetaDataHandler):
+    ''' This class is for the /metadata endpoint. '''
+    esq = ESQuery()
+    settings = ${ settings_class }()
+    ga_settings = GoogleAnalyticsSettings()
