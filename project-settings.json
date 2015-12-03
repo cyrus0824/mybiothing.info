@@ -1,3 +1,8 @@
 {
-"src_package": ""
+"src_package": "myvariant",
+"settings_class": "MyVariantSettings",
+"annotation_endpoint": "variant",
+"query_endpoint": "query",
+"annotation_handler_name": "Variant",
+"query_handler_name": "Query"
 }
