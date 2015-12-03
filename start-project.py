@@ -27,8 +27,7 @@ def main(args):
         sys.exit(1)
 
     copytree(os.path.abspath('biothings'), os.path.join(dir, 'biothings'))
-    rmtree(os.path.join(dir, 'biothings', 'templates'))
-    
+    rmtree(os.path.join(dir, 'biothings', 'templates'))   
 
     # Get settings dict
     f = open('project-settings.json', 'r')
