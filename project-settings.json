@@ -5,5 +5,6 @@
 "query_endpoint": "query",
 "annotation_handler_name": "Variant",
 "query_handler_name": "Query",
-"google_analytics_id": "UA-62731210-1"
+"google_analytics_id": "UA-62731210-1",
+"es_doctype": "variant"
 }
