@@ -1,7 +1,7 @@
 #import re
 import json
-from utils.common import dotdict, is_str, is_seq
-from utils.es import get_es
+from biothings.utils.common import dotdict, is_str, is_seq
+from biothings.utils.es import get_es
 from elasticsearch import NotFoundError, RequestError
 import config
 

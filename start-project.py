@@ -37,11 +37,10 @@ def main(args):
     os.chdir(template_dir)
 
     # Template files out
-    for (dirpath, dirnames, filenames) in list(os.walk(template_dir))[1:]:
-        #print(dirpath)
-        #print(filenames)
+    for (index, (dirpath, dirnames, filenames)) in enumerate(list(os.walk(template_dir))):
         thisdir = os.path.join(dir, transform_name(os.path.relpath(dirpath), settings_dict))
-        os.mkdir(thisdir)
+        if index > 0:            
+            os.mkdir(thisdir)
         for fi in filenames:
             f = open(os.path.join(thisdir, transform_name(fi, settings_dict)), 'w')
             g = open(os.path.join(os.path.abspath(dirpath), fi), 'r')            

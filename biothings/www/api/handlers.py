@@ -1,8 +1,8 @@
 import re
 import json
 from tornado.web import HTTPError
-from www.helper import BaseHandler
-from utils.common import split_ids
+from biothings.www.helper import BaseHandler
+from biothings.utils.common import split_ids
 import config
 
 
