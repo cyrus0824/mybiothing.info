@@ -35,8 +35,8 @@ def main(args):
         "settings_class": "My" + biothing_name.title() + "Settings",
         "annotation_endpoint": biothing_name.lower(),
         "query_endpoint": "query",
-        "annotation_handler_name": biothing_name.title(),
-        "query_handler_name": "Query",
+        "annotation_handler_name": biothing_name.title() + "Handler",
+        "query_handler_name": "QueryHandler",
         "es_doctype": biothing_name.lower(),
     }
 

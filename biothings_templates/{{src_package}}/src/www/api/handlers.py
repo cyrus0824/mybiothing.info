@@ -3,12 +3,12 @@ from biothings.www.api.handlers import MetaDataHandler, BiothingHandler, QueryHa
 from www.api.es import ESQuery
 import config
 
-class ${annotation_handler_name}Handler(BiothingHandler):
+class ${annotation_handler_name}(BiothingHandler):
     ''' This class is for the /${annotation_endpoint} endpoint. '''
     esq = ESQuery()
     settings = config.${settings_class}()
 
-class ${query_handler_name}Handler(QueryHandler):
+class ${query_handler_name}(QueryHandler):
     ''' This class is for the /${query_endpoint} endpoint. '''
     esq = ESQuery()
     settings = config.${settings_class}()
