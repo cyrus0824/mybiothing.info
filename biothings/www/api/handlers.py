@@ -10,7 +10,7 @@ class BiothingHandler(BaseHandler):
 
     def _ga_event_object(self, action, data={}):
         ''' Returns the google analytics object for requests on this endpoint (annotation handler).'''
-        return self.ga_settings.ga_event_object(endpoint=self.settings.annotation_endpoint(), action=action, data=data)
+        return self.settings.ga_event_object(endpoint=self.settings.annotation_endpoint(), action=action, data=data)
 
 
     def _examine_kwargs(self, action, kwargs):
@@ -63,7 +63,7 @@ class QueryHandler(BaseHandler):
 
     def _ga_event_object(self, action, data={}):
         ''' Returns the google analytics object for requests on this endpoint (query handler).'''
-        return self.ga_settings.ga_event_object(endpoint=self.settings.query_endpoint(), action=action, data=data)
+        return self.settings.ga_event_object(endpoint=self.settings.query_endpoint(), action=action, data=data)
 
     def _examine_kwargs(self, action, kwargs):
         ''' A function for sub-classing.  This will be run after the get_query_params but before the actual
