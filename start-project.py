@@ -8,7 +8,7 @@ def transform_name(s, d):
     return Template(re.sub(r"\}\}", "}", re.sub(r"\{\{", "${", s))).substitute(d)
 
 def usage():
-    return "Usage: python start-project.py < path-to-project-directory > < object-name > < OPTIONAL key=value pairs to override template variables >"
+    return "Usage: python start-project.py < path to project directory > < object name > < OPTIONAL key=value pairs to override template variables >"
 
 def main(args):
     try:
@@ -16,7 +16,7 @@ def main(args):
         biothing_name = args[2]
         clargs = dict([arg.split('=', maxsplit=1) for arg in sys.argv[3:]])
     except:
-        print("Valid project destination directory must be included.")
+        print("Valid project destination directory and object name must be included.")
         print(usage())
         sys.exit(1)
 

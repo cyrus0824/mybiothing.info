@@ -57,7 +57,7 @@ FIELD_NOTES_PATH = ''
 
 class ${settings_class}():
     def __init__(self):
-        self.applist = []
+        pass
 
     @property
     def _annotation_endpoint(self):
