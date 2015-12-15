@@ -3,8 +3,9 @@ import json
 from biothings.utils.common import dotdict, is_str, is_seq
 from biothings.utils.es import get_es
 from elasticsearch import NotFoundError, RequestError
-import config
 
+ALLOWED_OPTIONS = ['_source', 'start', 'from_', 'size',
+                   'sort', 'explain', 'version', 'facets', 'fetch_all', 'host']
 
 class QueryError(Exception):
     pass
@@ -15,17 +16,13 @@ class ScrollSetupError(Exception):
 
 
 class ESQuery():
-    def __init__(self, index=None, doc_type=None, es_host=None, allowed_options=None):
-        self._es = get_es(es_host)
-        self._index = index or config.ES_INDEX_NAME
-        self._doc_type = doc_type or config.ES_DOC_TYPE
-        if allowed_options:
-            self._allowed_options = allowed_options
-        else:
-            self._allowed_options = ['_source', 'start', 'from_', 'size',
-                                 'sort', 'explain', 'version', 'facets', 'fetch_all', 'host']
-        self._scroll_time = '1m'
-        self._total_scroll_size = 1000   # Total number of hits to return per scroll batch
+    def __init__(self, settings):
+        self._es = get_es(settings.es_host)
+        self._index = settings.es_index
+        self._doc_type = settings.es_doc_type
+        self._allowed_options = settings.allowed_options or ALLOWED_OPTIONS
+        self._scroll_time = settings.scroll_time
+        self._total_scroll_size = settings.scroll_size   # Total number of hits to return per scroll batch
         if self._total_scroll_size % self.get_number_of_shards() == 0:
             # Total hits per shard per scroll batch
             self._scroll_size = int(self._total_scroll_size / self.get_number_of_shards())
@@ -277,7 +274,7 @@ class ESQuery():
         r = self._es.indices.get(index=self._index)
         return r[list(r.keys())[0]]['mappings'][self._doc_type]['properties']
 
-    def _status_check(self, bid):
+    def status_check(self, bid):
         r = self.get_biothing(bid)
         return
 

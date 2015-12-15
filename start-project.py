@@ -2,7 +2,6 @@ import os
 import re
 import sys
 from string import Template
-import json
 from shutil import copytree
 
 def transform_name(s, d):
@@ -21,13 +20,12 @@ def main(args):
         print(usage())
         sys.exit(1)
 
-    template_dir = os.path.join(os.getcwd(), 'biothings', 'templates')
+    cwd = os.getcwd()
+    template_dir = os.path.join(os.getcwd(), 'biothings_templates')
 
     if not os.path.exists(template_dir):
         print("Could not find template directory.  Exiting.")
         sys.exit(1)
-
-    copytree(os.path.abspath('biothings'), os.path.join(pdir, 'biothings'))
 
     # create settings dict
     settings_dict = {
@@ -38,6 +36,7 @@ def main(args):
         "annotation_handler_name": biothing_name.title() + "Handler",
         "query_handler_name": "QueryHandler",
         "es_doctype": biothing_name.lower(),
+        "base_url": "My" + biothing_name.title() + ".info"
     }
 
     # override any key value pairs from the command line
@@ -56,6 +55,9 @@ def main(args):
             f.write(Template(g.read()).substitute(settings_dict))
             f.close()
             g.close()
+
+    os.chdir(cwd)
+    copytree(os.path.abspath('biothings'), os.path.join(pdir, settings_dict['src_package'], 'src', 'biothings'))
 
 if __name__ == '__main__':
     main(sys.argv)

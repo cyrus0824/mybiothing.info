@@ -7,7 +7,7 @@ Currently available URLs:
     /v1/variant/<variant_id>    variant annotation service
 
 '''
-import sys
+#import sys
 import os.path
 #import subprocess
 #import json
@@ -18,10 +18,7 @@ import tornado.options
 import tornado.web
 import tornado.escape
 from tornado.options import define, options
-
-src_path = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
-if src_path not in sys.path:
-    sys.path.append(src_path)
+from __main__ import *
 #from config import INCLUDE_DOCS
 
 __USE_WSGI__ = False

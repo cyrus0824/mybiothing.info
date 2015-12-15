@@ -4,9 +4,8 @@ import json
 from elasticsearch import Elasticsearch, NotFoundError
 from elasticsearch import helpers
 
-import config
-from utils.common import iter_n, timesofar, ask
-from dataindex.mapping import get_mapping
+from biothings.utils.common import iter_n, timesofar, ask
+#from biothings.dataindex.mapping import get_mapping
 
 # setup ES logging
 import logging
@@ -24,11 +23,11 @@ ch.setFormatter(formatter)
 es_tracer.addHandler(ch)
 
 
-def verify_ids(doc_iter, step=100000, index=None, doc_type=None):
+def verify_ids(doc_iter, index, doc_type, step=100000, ):
     '''verify how many docs from input interator/list overlapping with existing docs.'''
 
-    index = index or config.ES_INDEX_NAME
-    doc_type = doc_type or config.ES_DOC_TYPE
+    index = index
+    doc_type = doc_type
     es = get_es()
     q = {'query': {'ids': {"values": []}}}
     total_cnt = 0
@@ -46,8 +45,7 @@ def verify_ids(doc_iter, step=100000, index=None, doc_type=None):
     return out
 
 
-def get_es(es_host=None):
-    es_host = es_host or config.ES_HOST
+def get_es(es_host):
     es = Elasticsearch(es_host, timeout=120)
     return es
 
@@ -66,11 +64,11 @@ def wrapper(func):
 
 
 class ESIndexer():
-    def __init__(self, index=None, doc_type=None, es_host=None, step=10000):
+    def __init__(self, index, doc_type, es_host, step=10000):
         self._es = get_es(es_host)
-        self._index = index or config.ES_INDEX_NAME
-        self._doc_type = doc_type or config.ES_DOC_TYPE
-        self.number_of_shards = config.ES_NUMBER_OF_SHARDS      # set number_of_shards when create_index
+        self._index = index
+        self._doc_type = doc_type
+        self.number_of_shards = 10      # set number_of_shards when create_index
         self.step = step  # the bulk size when doing bulk operation.
         self.s = None   # optionally, can specify number of records to skip,
                         # useful to continue indexing after an error.
@@ -505,14 +503,14 @@ def reindex(old_index, new_index, s):
         print('{} documents inserted'.format(curr_done))
 
 
-def get_metadata(index):
-    m = get_mapping()
-    data_src = m['variant']['properties'].keys()
-    stats = {}
-    t = ESIndexer()
-    t._index = index
-    m['total'] = t.count()
-
-    for _src in data_src:
-        stats[_src] = t.count_src(_src)[_src]
-    return stats
+#def get_metadata(index):
+#    m = get_mapping()
+#    data_src = m['variant']['properties'].keys()
+#    stats = {}
+#    t = ESIndexer()
+#    t._index = index
+#    m['total'] = t.count()
+#
+#    for _src in data_src:
+#        stats[_src] = t.count_src(_src)[_src]
+#    return stats

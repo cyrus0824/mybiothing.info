@@ -1,15 +1,13 @@
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient
 from pyga.requests import (Tracker, Page, Session, Visitor,
                            Event, PageViewRequest, EventRequest)
-import config
-
 
 class GAMixIn:
-    def ga_track(self, event={}):
+    def ga_track(self, settings, event={}):
         _req_list = []
         no_tracking = self.get_argument('no_tracking', None)
-        is_prod = getattr(config, 'RUN_IN_PROD', False)
-        if not no_tracking and is_prod and hasattr(config, "GA_ACCOUNT"):
+        is_prod = settings.ga_is_prod
+        if not no_tracking and is_prod and settings.ga_account:
             _req = self.request
             remote_ip = _req.headers.get("X-Real-Ip",
                         _req.headers.get("X-Forwarded-For",
@@ -24,7 +22,7 @@ class GAMixIn:
             )
             session = Session()
             page = Page(_req.path)
-            tracker = Tracker(config.GA_ACCOUNT, 'MyVariant.info')
+            tracker = Tracker(settings.ga_account, settings.ga_tracker_url)
             # tracker.track_pageview(page, session, visitor)  #this is non-async request
             pvr = PageViewRequest(config=tracker.config,
                                   tracker=tracker,
