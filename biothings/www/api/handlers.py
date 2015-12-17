@@ -161,7 +161,7 @@ class FieldsHandler(BaseHandler):
 
     def get(self):
         if self.settings.field_notes_path:
-            notes = json.load(open(settings.field_notes_path, 'r'))
+            notes = json.load(open(self.settings.field_notes_path, 'r'))
         else:
             notes = {}
         es_mapping = self.esq.query_fields()
