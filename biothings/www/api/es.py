@@ -5,7 +5,7 @@ from biothings.utils.es import get_es
 from elasticsearch import NotFoundError, RequestError
 
 ALLOWED_OPTIONS = ['_source', 'start', 'from_', 'size',
-                   'sort', 'explain', 'version', 'facets', 'fetch_all', 'host']
+                   'sort', 'explain', 'version', 'facets', 'fetch_all']
 
 class QueryError(Exception):
     pass
